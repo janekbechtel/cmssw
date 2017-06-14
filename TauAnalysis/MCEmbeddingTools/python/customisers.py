@@ -370,18 +370,39 @@ def customiseLHEandCleaning_Reselect(process):
 ################################ additionla Customizer ###########################
 
 def customisoptions(process):
-	if not hasattr(process, "options"): 
-	  process.options = cms.untracked.PSet()
-	process.options.emptyRunLumiMode = cms.untracked.string('doNotHandleEmptyRunsAndLumis')	
-	return process
+    if not hasattr(process, "options"): 
+      process.options = cms.untracked.PSet()
+    process.options.emptyRunLumiMode = cms.untracked.string('doNotHandleEmptyRunsAndLumis')    
+    if not hasattr(process, "bunchSpacingProducer"):
+        process.bunchSpacingProducer = cms.EDProducer("BunchSpacingProducer")
+    process.bunchSpacingProducer.bunchSpacingOverride = cms.uint32(25)
+    process.bunchSpacingProducer.overrideBunchSpacing = cms.bool(True)
+    process.options.numberOfThreads = cms.untracked.uint32(4)
+    process.options.numberOfStreams = cms.untracked.uint32(0)
+    return process
 
 ############################### MC specific Customizer ###########################
 
 def customiseFilterZToMuMu(process):
 	process.load("TauAnalysis.MCEmbeddingTools.DYToMuMuGenFilter_cfi")
-	process.ZToMuMuFilter = cms.Path(process.dYToMuMuGenFilter)
-	process.schedule.insert(-1,process.ZToMuMuFilter)
+	process.MCFilter = cms.Path(process.dYToMuMuGenFilter)
+	return customiseMCFilter(process)
+
+def customiseFilterTTbartoMuMu(process):
+	process.load("TauAnalysis.MCEmbeddingTools.TTbartoMuMuGenFilter_cfi")
+	process.MCFilter = cms.Path(process.TTbartoMuMuGenFilter)
+	return customiseMCFilter(process)
+
+def customiseMCFilter(process):
+	process.schedule.insert(-1,process.MCFilter)
+	outputModulesList = [key for key,value in process.outputModules.iteritems()]
+	for outputModule in outputModulesList:
+		outputModule = getattr(process, outputModule)
+		outputModule.SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring("MCFilter"))
 	return process
+
+
+
       
       
       
