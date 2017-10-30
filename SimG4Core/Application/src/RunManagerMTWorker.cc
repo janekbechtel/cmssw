@@ -120,7 +120,8 @@ struct RunManagerMTWorker::TLSData {
   std::vector<SensitiveCaloDetector*> sensCaloDets;
   std::vector<std::shared_ptr<SimWatcher> > watchers;
   std::vector<std::shared_ptr<SimProducer> > producers;
-  std::unique_ptr<G4Run> currentRun;
+  //std::unique_ptr<G4Run> currentRun;
+  G4Run* currentRun;
   std::unique_ptr<G4Event> currentEvent;
   edm::RunNumber_t currentRunNumber = 0;
   G4RunManagerKernel* kernel = nullptr;
@@ -375,15 +376,16 @@ std::vector<std::shared_ptr<SimProducer> > RunManagerMTWorker::producers() {
 }
 
 void RunManagerMTWorker::initializeRun() {
-  m_tls->currentRun.reset(new G4Run());
+  //m_tls->currentRun.reset(new G4Run());
+  m_tls->currentRun = nullptr;
   G4StateManager::GetStateManager()->SetNewState(G4State_GeomClosed);
-  if (m_tls->userRunAction) { m_tls->userRunAction->BeginOfRunAction(m_tls->currentRun.get()); }
+  if (m_tls->userRunAction) { m_tls->userRunAction->BeginOfRunAction(m_tls->currentRun); }
 }
 
 void RunManagerMTWorker::terminateRun() {
   if(!m_tls || m_tls->runTerminated) { return; }
   if(m_tls->userRunAction) {
-    m_tls->userRunAction->EndOfRunAction(m_tls->currentRun.get());
+    m_tls->userRunAction->EndOfRunAction(m_tls->currentRun);
     m_tls->userRunAction.reset();
   }
   m_tls->currentEvent.reset();
@@ -488,7 +490,8 @@ void RunManagerMTWorker::abortEvent() {
 
 void RunManagerMTWorker::abortRun(bool softAbort) {
   if (!softAbort) { abortEvent(); }
-  m_tls->currentRun.reset();
+  //m_tls->currentRun.reset();
+  m_tls->currentRun = nullptr;
   terminateRun();
 }
 
