@@ -145,12 +145,12 @@ void l1t::L1TGlobalUtil::retrieveL1Setup(const edm::EventSetup& evSetup) {
     }
 
     //Protect against poor prescale column choice (I don't think there is a way this happen as currently structured)
-    if(m_PreScaleColumn > m_prescaleFactorsAlgoTrig->size() || m_PreScaleColumn < 1) {
+    if(m_PreScaleColumn >= m_prescaleFactorsAlgoTrig->size() || m_PreScaleColumn < 1) {
       LogTrace("l1t|Global")
-	<< "\nNo Prescale Set: " << m_PreScaleColumn
-	<< "\nMax Prescale Set value : " << m_prescaleFactorsAlgoTrig->size()
-	<< "\nSetting prescale column to 0"
-	<< std::endl;
+        << "\nNo Prescale Set: " << m_PreScaleColumn
+        << "\nMax Prescale Set value : " << m_prescaleFactorsAlgoTrig->size()
+        << "\nSetting prescale column to 0"
+        << std::endl;
       m_PreScaleColumn = 0;
     }
     //std::cout << "Using prescale column: " << m_PreScaleColumn << std::endl;
@@ -216,6 +216,16 @@ void l1t::L1TGlobalUtil::retrieveL1Event(const edm::Event& iEvent, const edm::Ev
 	 if (! m_readPrescalesFromFile){
 	   m_PreScaleColumn = static_cast<unsigned int>(algBlk->getPreScColumn());
 	 }
+	 
+    //Protect against poor prescale column choice (I don't think there is a way this happen as currently structured)
+    if(m_PreScaleColumn >= m_prescaleFactorsAlgoTrig->size() || m_PreScaleColumn < 1) {
+      LogTrace("l1t|Global")
+        << "\nNo Prescale Set: " << m_PreScaleColumn
+        << "\nMax Prescale Set value : " << m_prescaleFactorsAlgoTrig->size()
+        << "\nSetting prescale column to 0"
+        << std::endl;
+      m_PreScaleColumn = 0;
+    }
 	 const std::vector<int>& prescaleSet = (*m_prescaleFactorsAlgoTrig)[m_PreScaleColumn];
 
 	 // Grab the final OR from the AlgBlk,
