@@ -121,20 +121,30 @@ def customiseSelecting(process,reselect=False):
 def customiseSelecting_Reselect(process):
 	return customiseSelecting(process,reselect=True)
 
-################################ Customizer for cleaining ###########################
+################################ Customizer for cleaning ###########################
 def keepCleaned():
-	 ret_vstring = cms.untracked.vstring(
-#	 	                 "drop *_*_*_LHEembeddingCLEAN",
-#	 	                 "drop *_*_*_CLEAN"
-	 	                 )
-	 
-	 for akt_manimod in to_bemanipulate:
+	ret_vstring = cms.untracked.vstring(
+#		                 "drop *_*_*_LHEembeddingCLEAN",
+#		                 "drop *_*_*_CLEAN"
+		                 "drop *_*_*_SELECT"
+		                 )
+	
+	for akt_manimod in to_bemanipulate:
 		if "MERGE" in akt_manimod.steps:
 			ret_vstring.append("keep *_"+akt_manimod.module_name+"_*_LHEembeddingCLEAN")
 			ret_vstring.append("keep *_"+akt_manimod.module_name+"_*_CLEAN")
-	 ret_vstring.append("keep *_standAloneMuons_*_LHEembeddingCLEAN")
-	 ret_vstring.append("keep *_glbTrackQual_*_LHEembeddingCLEAN")
-	 return ret_vstring
+	ret_vstring.append("keep *_standAloneMuons_*_LHEembeddingCLEAN")
+	ret_vstring.append("keep *_glbTrackQual_*_LHEembeddingCLEAN")
+
+	ret_vstring.append("keep *_firstStepPrimaryVertices_*_SELECT")
+	ret_vstring.append("keep *_l1extraParticles_*_SELECT")
+	ret_vstring.append("keep *_selectedMuonsForEmbedding_*_SELECT")
+	ret_vstring.append("keep *_patMuonsAfterID_*_SELECT")
+	ret_vstring.append("keep *_slimmedMuons_*_SELECT")
+	ret_vstring.append("keep *_offlineSlimmedPrimaryVertices_*_SELECT")
+	ret_vstring.append("keep *_offlineBeamSpot_*_SELECT")
+	
+	return ret_vstring
 
 
 
