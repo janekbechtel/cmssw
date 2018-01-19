@@ -1,8 +1,7 @@
 /** \class DoubleCollectionMerger
  *
  * 
- * \author Stefan Wayand;
- *         Christian Veelken, LLR
+ * \author Per Ahrens
  *
  * 
  *
