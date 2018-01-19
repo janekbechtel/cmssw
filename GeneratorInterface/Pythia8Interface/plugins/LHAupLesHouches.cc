@@ -93,31 +93,31 @@ bool LHAupLesHouches::setEvent(int inProcId)
                 hepeup.PUP[i][4], hepeup.VTIMUP[i],
                 hepeup.SPINUP[i],scalein);
   }
-  
+
   if(!infoPtr->eventAttributes) {
     fEvAttributes->clear();
     infoPtr->eventAttributes = fEvAttributes;
   } else {
-    infoPtr->eventAttributes->clear();
+    infoPtr->eventAttributes = nullptr;//->clear();
+    fEvAttributes->clear();
+    infoPtr->eventAttributes = fEvAttributes;
   }
 
   //fill parton multiplicities if available
   int npLO = event->npLO();
   int npNLO = event->npNLO();
-
   //default value of -99 indicates tags were not present in the original LHE file
   //don't pass to pythia in this case to emulate pythia internal lhe reader behaviour
   if (npLO!=-99) {
     char buffer [100];
-    snprintf( buffer, 100, "%i",npLO);    
+    snprintf( buffer, 100, "%i",npLO);
     (*infoPtr->eventAttributes)["npLO"] = buffer;
   }
   if (npNLO!=-99) {
     char buffer [100];
-    snprintf( buffer, 100, "%i",npNLO);    
+    snprintf( buffer, 100, "%i",npNLO);
     (*infoPtr->eventAttributes)["npNLO"] = buffer;
   }
-  
   const lhef::LHEEvent::PDF *pdf = event->getPDF();
   if (pdf) {
     this->setPdf(pdf->id.first, pdf->id.second,
