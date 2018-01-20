@@ -48,6 +48,7 @@ to_bemanipulate.append(module_manipulate(module_name = 'ckfOutInTracksFromConver
 to_bemanipulate.append(module_manipulate(module_name = 'muons1stStep', manipulator_name = "Muon", steps = ["SIM", "MERGE"]))
 #to_bemanipulate.append(module_manipulate(module_name = 'gedGsfElectronsTmp', manipulator_name = "GsfElectron", steps = ["SIM", "MERGE"]))
 #to_bemanipulate.append(module_manipulate(module_name = 'gedPhotonsTmp', manipulator_name = "Photon", steps = ["SIM", "MERGE"]))
+to_bemanipulate.append(module_manipulate(module_name = 'conversions', manipulator_name = "Conversion", steps = ["SIM", "MERGE"]))
 to_bemanipulate.append(module_manipulate(module_name = 'particleFlowTmp', manipulator_name = "PF", steps = ["SIM", "MERGE"], instance=["","CleanedHF","CleanedCosmicsMuons","CleanedTrackerAndGlobalMuons","CleanedFakeMuons","CleanedPunchThroughMuons","CleanedPunchThroughNeutralHadrons","AddedMuonsAndHadrons"]))
 
 

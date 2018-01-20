@@ -48,6 +48,7 @@ typedef TrackMergeremb<reco::GsfTrackCollection> GsfTrackColMerger;
 typedef TrackMergeremb<reco::MuonCollection > MuonColMerger;
 typedef TrackMergeremb<reco::GsfElectronCollection > GsfElectronColMerger;
 typedef TrackMergeremb<reco::PhotonCollection > PhotonColMerger;
+typedef TrackMergeremb<reco::ConversionCollection > ConversionColMerger;
 typedef TrackMergeremb<reco::PFCandidateCollection > PFColMerger;
 
 
@@ -445,4 +446,5 @@ DEFINE_FWK_MODULE(GsfTrackColMerger);
 DEFINE_FWK_MODULE(MuonColMerger);
 DEFINE_FWK_MODULE(GsfElectronColMerger);
 DEFINE_FWK_MODULE(PhotonColMerger);
+DEFINE_FWK_MODULE(ConversionColMerger);
 DEFINE_FWK_MODULE(PFColMerger);
