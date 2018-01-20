@@ -122,10 +122,18 @@ def customiseSelecting_Reselect(process):
 	return customiseSelecting(process,reselect=True)
 
 ################################ Customizer for cleaining ###########################
-def keepCleaned():
+def keepCleaned(dataTier):
 	 ret_vstring = cms.untracked.vstring(
 #	 	                 "drop *_*_*_LHEembeddingCLEAN",
 #	 	                 "drop *_*_*_CLEAN"
+		                 "drop *_*_*_"+dataTier,
+		                 "keep *_patMuonsAfterID_*_"+dataTier,
+		                 "keep *_slimmedMuons_*_"+dataTier,
+		                 "keep *_selectedMuonsForEmbedding_*_"+dataTier,
+		                 "keep recoVertexs_offlineSlimmedPrimaryVertices_*_"+dataTier,
+		                 "keep *_firstStepPrimaryVertices_*_"+dataTier,
+		                 "keep *_offlineBeamSpot_*_"+dataTier,
+		                 "keep *_l1extraParticles_*_"+dataTier
 	 	                 )
 
 	 for akt_manimod in to_bemanipulate:
@@ -165,7 +173,7 @@ def customiseCleaning(process, changeProcessname=True,reselect=False):
 			setattr(process, akt_manimod.module_name, cms.EDProducer(akt_manimod.cleaner_name,MuonCollection = MuonImput,TrackAssociatorParameters = TrackAssociatorParameterBlock.TrackAssociatorParameters,oldCollection = oldCollections_in))
 	process.ecalPreshowerRecHit.TrackAssociatorParameters.usePreshower = cms.bool(True)
 	process = customisoptions(process)
-	return modify_outputModules(process,[keepSelected(dataTier),keepCleaned()],["MINIAODoutput"])
+	return modify_outputModules(process,[keepSelected(dataTier),keepCleaned(dataTier)],["MINIAODoutput"])
 
 
 ################################ Customizer for simulaton ###########################
@@ -207,7 +215,7 @@ def customiseLHE(process, changeProcessname=True,reselect=False):
 
 
 	process = customisoptions(process)
-	return modify_outputModules(process,[keepSelected(dataTier),keepCleaned(), keepLHE()],["MINIAODoutput"])
+	return modify_outputModules(process,[keepSelected(dataTier),keepCleaned(dataTier), keepLHE()],["MINIAODoutput"])
 
 
 def customiseGenerator(process, changeProcessname=True,reselect=False):
@@ -246,7 +254,7 @@ def customiseGenerator(process, changeProcessname=True,reselect=False):
 	process = customisoptions(process)
 	##process = fix_input_tags(process)
 
-	return modify_outputModules(process,[keepSelected(dataTier),keepCleaned(),keepSimulated()],["AODSIMoutput"])
+	return modify_outputModules(process,[keepSelected(dataTier),keepCleaned(dataTier),keepSimulated()],["AODSIMoutput"])
 
 def customiseGenerator_Reselect(process):
 	return customiseGenerator(process,reselect=True)
