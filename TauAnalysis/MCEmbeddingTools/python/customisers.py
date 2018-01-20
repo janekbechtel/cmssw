@@ -118,7 +118,7 @@ def customiseSelecting(process,reselect=False):
 		outputModule = getattr(process, outputModule)
 		outputModule.SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring("selecting"))
 		outputModule.outputCommands.extend(keepSelected(dataTier))
-		
+
 	process = customisoptions(process)
 	return modify_outputModules(process,[keepSelected(dataTier)])
 
@@ -127,13 +127,12 @@ def customiseSelecting_Reselect(process):
 
 ################################ Customizer for cleaning ###########################
 def keepCleaned():
-	ret_vstring = cms.untracked.vstring(
-#		                 "drop *_*_*_LHEembeddingCLEAN",
-#		                 "drop *_*_*_CLEAN"
-		                 "drop *_*_*_SELECT"
-		                 )
-	
-	for akt_manimod in to_bemanipulate:
+	 ret_vstring = cms.untracked.vstring(
+#	 	                 "drop *_*_*_LHEembeddingCLEAN",
+#	 	                 "drop *_*_*_CLEAN"
+	 	                 )
+
+	 for akt_manimod in to_bemanipulate:
 		if "MERGE" in akt_manimod.steps:
 			ret_vstring.append("keep *_"+akt_manimod.module_name+"_*_LHEembeddingCLEAN")
 			ret_vstring.append("keep *_"+akt_manimod.module_name+"_*_CLEAN")
@@ -157,7 +156,7 @@ def customiseCleaning(process, changeProcessname=True,reselect=False):
 		process._Process__name = "CLEAN"
 	if reselect:
 		dataTier="RESELECT"
-	else: 
+	else:
 		dataTier="SELECT"
 	## Needed for the Calo Cleaner, could also be put into a function wich fix the input parameters
 	from TrackingTools.TrackAssociator.default_cfi import TrackAssociatorParameterBlock
@@ -178,7 +177,7 @@ def customiseCleaning(process, changeProcessname=True,reselect=False):
 				oldCollections_in.append(cms.InputTag(akt_manimod.module_name,instance,dataTier))
 			setattr(process, akt_manimod.module_name, cms.EDProducer(akt_manimod.cleaner_name,MuonCollection = MuonImput,TrackAssociatorParameters = TrackAssociatorParameterBlock.TrackAssociatorParameters,oldCollection = oldCollections_in))
 	process.ecalPreshowerRecHit.TrackAssociatorParameters.usePreshower = cms.bool(True)
-	process = customisoptions(process)	
+	process = customisoptions(process)
 	return modify_outputModules(process,[keepSelected(dataTier),keepCleaned()],["MINIAODoutput"])
 
 
@@ -209,7 +208,7 @@ def keepSimulated():
 def customiseLHE(process, changeProcessname=True,reselect=False):
 	if reselect:
 		dataTier="RESELECT"
-	else: 
+	else:
 		dataTier="SELECT"
 	if changeProcessname:
 		process._Process__name = "LHEembedding"
@@ -218,8 +217,8 @@ def customiseLHE(process, changeProcessname=True,reselect=False):
 		process.externalLHEProducer.vertices=cms.InputTag("offlineSlimmedPrimaryVertices","","RESELECT")
 	process.lheproduction = cms.Path(process.makeexternalLHEProducer)
 	process.schedule.insert(0,process.lheproduction)
-	
-	
+
+
 	process = customisoptions(process)
 	return modify_outputModules(process,[keepSelected(dataTier),keepCleaned(), keepLHE()],["MINIAODoutput"])
 
@@ -233,7 +232,7 @@ def customiseGenerator(process, changeProcessname=True,reselect=False):
 		process._Process__name = "SIMembedding"
 
 	## here correct the vertex collection
-	
+
 	process.load('TauAnalysis.MCEmbeddingTools.EmbeddingVertexCorrector_cfi')
 	process.VtxSmeared = process.VtxCorrectedToInput.clone()
 	print "Correcting Vertex in genEvent to one from input. Replaced 'VtxSmeared' with the Corrector."
@@ -258,11 +257,11 @@ def customiseGenerator(process, changeProcessname=True,reselect=False):
 	process.mix.digitizers.pixel.AddNoise = cms.bool(False)
 
 	process.mix.digitizers.strip.Noise = cms.bool(False)
-	
-	
-	process = customisoptions(process) 
+
+
+	process = customisoptions(process)
 	##process = fix_input_tags(process)
-	
+
 	return modify_outputModules(process,[keepSelected(dataTier),keepCleaned(),keepSimulated()],["AODSIMoutput"])
 
 def customiseGenerator_Reselect(process):
@@ -282,29 +281,31 @@ def customiseKeepPrunedGenParticles(process,reselect=False):
 		dataTier="RESELECT"
 	else:
 		dataTier="SELECT"
-	
+
+	process.keep_step = cms.Path()
+
 	process.load('PhysicsTools.PatAlgos.slimming.genParticles_cff')
-	process.merge_step += process.prunedGenParticlesWithStatusOne
+	process.keep_step += process.prunedGenParticlesWithStatusOne
 	process.load('PhysicsTools.PatAlgos.slimming.prunedGenParticles_cfi')
-	process.merge_step += process.prunedGenParticles
+	process.keep_step += process.prunedGenParticles
 	process.load('PhysicsTools.PatAlgos.slimming.packedGenParticles_cfi')
-	process.merge_step += process.packedGenParticles
-	
+	process.keep_step += process.packedGenParticles
+
 	process.load('PhysicsTools.PatAlgos.mcMatchLayer0.muonMatch_cfi')
-	process.merge_step += process.muonMatch
+	process.keep_step += process.muonMatch
 	process.load('PhysicsTools.PatAlgos.mcMatchLayer0.electronMatch_cfi')
-	process.merge_step += process.electronMatch
+	process.keep_step += process.electronMatch
 	process.load('PhysicsTools.PatAlgos.mcMatchLayer0.photonMatch_cfi')
-	process.merge_step += process.photonMatch
+	process.keep_step += process.photonMatch
 	process.load('PhysicsTools.PatAlgos.mcMatchLayer0.tauMatch_cfi')
-	process.merge_step += process.tauMatch
+	process.keep_step += process.tauMatch
 	process.load('PhysicsTools.JetMCAlgos.TauGenJets_cfi')
-	process.merge_step += process.tauGenJets
+	process.keep_step += process.tauGenJets
 	process.load('PhysicsTools.PatAlgos.mcMatchLayer0.jetFlavourId_cff')
-	process.merge_step += process.patJetPartons
+	process.keep_step += process.patJetPartons
 	process.load('PhysicsTools.PatAlgos.mcMatchLayer0.jetMatch_cfi')
-	process.merge_step += process.patJetPartonMatch
-	
+	process.keep_step += process.patJetPartonMatch
+
 	process.muonMatch.matched = "prunedGenParticles"
 	process.electronMatch.matched = "prunedGenParticles"
 	process.electronMatch.src = cms.InputTag("reducedEgamma","reducedGedGsfElectrons")
@@ -328,9 +329,9 @@ def customiseKeepPrunedGenParticles(process,reselect=False):
 	process.patJets.embedGenPartonMatch = False
 	#also jet flavour must be switched
 	process.patJetFlavourAssociation.rParam = 0.4
-	
-	process.schedule.insert(0,process.merge_step)
-	process = customisoptions(process)  
+
+	process.schedule.insert(0,process.keep_step)
+	process = customisoptions(process)
 	return modify_outputModules(process, [keepMerged(dataTier)])
 
 
@@ -345,7 +346,7 @@ def customiseMerging(process, changeProcessname=True,reselect=False):
 
 	process.source.inputCommands = cms.untracked.vstring()
 	process.source.inputCommands.append("keep *_*_*_*")
-	
+
 	#process.source.inputCommands.append("drop *_*_*_SELECT")
 	#process.source.inputCommands.append("drop *_*_*_SIMembedding")
 	#process.source.inputCommands.append("drop *_*_*_LHEembeddingCLEAN")
@@ -421,18 +422,18 @@ def customiseMerging(process, changeProcessname=True,reselect=False):
 	process.merge_step.remove(process.hcalnoise)
 
 	process.load('CommonTools.ParticleFlow.genForPF2PAT_cff')
-		
+
 	process.merge_step += process.genForPF2PATSequence
-	
+
 	process.schedule.insert(0,process.merge_step)
 	 # process.load('PhysicsTools.PatAlgos.slimming.slimmedGenJets_cfi')
-	
-	process = customisoptions(process) 
+
+	process = customisoptions(process)
 	return modify_outputModules(process, [keepMerged(dataTier)])
 
 def customiseMerging_Reselect(process, changeProcessname=True):
 	return customiseMerging(process, changeProcessname=changeProcessname, reselect=True)
-	
+
 ################################ cross Customizers ###########################
 
 def customiseLHEandCleaning(process,reselect=False):
@@ -500,7 +501,7 @@ def fix_input_tags(process, formodules = ["generalTracks","cscSegments","dt4DSeg
 					change_tags_process(pset[key])
 		else:
 			print "must be python dict not a ",type(pset)
-			
+
 	for module in process.producers_():
 		search_for_tags(getattr(process, module).__dict__)
 	for module in process.filters_():
