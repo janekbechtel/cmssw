@@ -7,7 +7,8 @@
 #include "DataFormats/GsfTrackReco/interface/GsfTrack.h"
 #include "DataFormats/GsfTrackReco/interface/GsfTrackFwd.h"
 
-
+#include "DataFormats/EgammaReco/interface/SuperClusterFwd.h"
+#include "DataFormats/EgammaReco/interface/SuperCluster.h"
 
 #include "DataFormats/EgammaTrackReco/interface/ConversionTrack.h"
 #include "DataFormats/EgammaTrackReco/interface/ConversionTrackFwd.h"
@@ -378,8 +379,11 @@ void  TrackMergeremb<reco::PFCandidateCollection>::willconsume(const edm::Parame
 
    inputs_fixtrackrefs_ = consumes<TrackToTrackMapnew >( edm::InputTag("generalTracks") );
    inputs_fixtrackcol_ = consumes<reco::TrackCollection >( edm::InputTag("generalTracks") );
+   inputs_fixgsftrackrefs_ = consumes<GsfTrackToTrackMapnew >( edm::InputTag("electronGsfTracks") );
+   inputs_fixgsftrackcol_ = consumes<reco::GsfTrackCollection >( edm::InputTag("electronGsfTracks") );
    inputs_fixmurefs_ = consumes<reco::MuonToMuonMap >( edm::InputTag("muons1stStep") );
    inputs_fixmucol_ = consumes<reco::MuonCollection >( edm::InputTag("muons1stStep") );
+   inputs_SC_ = consumes<reco::SuperClusterCollection >(edm::InputTag("particleFlowEGamma") );
 
 
 }
@@ -402,6 +406,16 @@ void  TrackMergeremb<reco::PFCandidateCollection >::merg_and_put(edm::Event& iEv
       simple_track_to_track_map[((*track_ref_map)[trackRef])[0]] = trackRef;
     }
 
+    edm::Handle<GsfTrackToTrackMapnew> gsftrack_ref_map;
+    iEvent.getByToken(inputs_fixgsftrackrefs_, gsftrack_ref_map);
+
+    edm::Handle<reco::GsfTrackCollection> gsftrack_new_col;
+    iEvent.getByToken(inputs_fixgsftrackcol_, gsftrack_new_col);
+    std::map<reco::GsfTrackRef , reco::GsfTrackRef > simple_gsftrack_to_gsftrack_map; //I didn't find a more elegant way, so just build a good old fassion std::map
+    for (unsigned abc =0;  abc < gsftrack_new_col->size();  ++abc) {
+      reco::GsfTrackRef gsfTrackRef(gsftrack_new_col, abc);
+      simple_gsftrack_to_gsftrack_map[((*gsftrack_ref_map)[gsfTrackRef])[0]] = gsfTrackRef;
+    }
 
     edm::Handle<reco::MuonToMuonMap> muon_ref_map;
     iEvent.getByToken(inputs_fixmurefs_, muon_ref_map);
@@ -414,24 +428,49 @@ void  TrackMergeremb<reco::PFCandidateCollection >::merg_and_put(edm::Event& iEv
       simple_mu_to_mu_map[(*muon_ref_map)[muRef]] = muRef;
     }
 
+    //used for photon matching
+    edm::Handle<reco::SuperClusterCollection> sCs;
+    iEvent.getByToken(inputs_SC_,sCs);
+    auto bSc = sCs->cbegin();
+    auto eSc = sCs->cend();
 
 
     for (auto akt_collection : to_merge){
-        edm::Handle<reco::PFCandidateCollection> track_col_in;
-        iEvent.getByToken(akt_collection, track_col_in);
-        for (reco::PFCandidateCollection::const_iterator it = track_col_in->begin(); it != track_col_in->end(); ++it) {
+      edm::Handle<reco::PFCandidateCollection> track_col_in;
+      iEvent.getByToken(akt_collection, track_col_in);
+      for (reco::PFCandidateCollection::const_iterator it = track_col_in->begin(); it != track_col_in->end(); ++it) {
         outTracks->push_back( reco::PFCandidate( *it ) );
         //if (fabs(it->pdgId()) == 13){
         if (it->trackRef().isNonnull() && outTracks->back().charge()){
-            //std::cout<<"pfmerge tr: "<<it->trackRef().id()<< " "<< it->trackRef().key()<< " " << simple_track_to_track_map[it->trackRef()].id() <<  " " << simple_track_to_track_map[it->trackRef()].key() <<std::endl;
-            outTracks->back().setTrackRef( simple_track_to_track_map[it->trackRef()]  );
+          //std::cout<<"pfmerge tr: "<<it->trackRef().id()<< " "<< it->trackRef().key()<< " " << simple_track_to_track_map[it->trackRef()].id() <<  " " << simple_track_to_track_map[it->trackRef()].key() <<std::endl;
+          outTracks->back().setTrackRef( simple_track_to_track_map[it->trackRef()]  );
          }
-        if (it->muonRef().isNonnull()){
-                //std::cout<<"pfmerge mu: "<<it->muonRef().id()<< " "<< it->muonRef().key()<< " " << simple_mu_to_mu_map[it->muonRef()].id() <<  " " << simple_mu_to_mu_map[it->muonRef()].key() <<std::endl;
-                outTracks->back().setMuonRef( simple_mu_to_mu_map[it->muonRef()]  );
-                }
-
+         if(it->gsfTrackRef().isNonnull()) {
+          outTracks->back().setGsfTrackRef( simple_gsftrack_to_gsftrack_map[it->gsfTrackRef()] );
         }
+        if (it->superClusterRef().isNonnull()) {
+          const reco::SuperClusterRef & pfScRef(it->superClusterRef());
+
+          float dx, dy, dz, dr;
+          float drMin = std::numeric_limits<float>::infinity();
+          reco::SuperClusterRef ccrefMin;
+          for( auto sc = bSc; sc != eSc; ++sc ) {
+            const reco::SuperClusterRef & scRef(reco::SuperClusterRef(sCs,std::distance(bSc,sc)));
+            dx = fabs(scRef->x()-pfScRef->x());
+            dy = fabs(scRef->y()-pfScRef->y());
+            dz = fabs(scRef->z()-pfScRef->z());
+            dr = sqrt(dx*dx+dy*dy+dz*dz);
+            if ( dr < drMin ) {
+              drMin = dr;
+              outTracks->back().setSuperClusterRef(scRef);
+            }
+          }
+        }
+        if (it->muonRef().isNonnull()){
+          //std::cout<<"pfmerge mu: "<<it->muonRef().id()<< " "<< it->muonRef().key()<< " " << simple_mu_to_mu_map[it->muonRef()].id() <<  " " << simple_mu_to_mu_map[it->muonRef()].key() <<std::endl;
+          outTracks->back().setMuonRef( simple_mu_to_mu_map[it->muonRef()]  );
+        }
+      }
     }// end merge
 
     iEvent.put(std::move(outTracks),instance);

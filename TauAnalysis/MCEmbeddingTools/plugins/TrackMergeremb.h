@@ -19,6 +19,9 @@
 #include "DataFormats/Common/interface/Handle.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 
+#include "DataFormats/EgammaReco/interface/SuperClusterFwd.h"
+#include "DataFormats/EgammaReco/interface/SuperCluster.h"
+
 #include "DataFormats/EgammaReco/interface/ElectronSeed.h"
 #include "DataFormats/EgammaReco/interface/ElectronSeedFwd.h"
 #include "TrackingTools/PatternTools/interface/Trajectory.h"
@@ -79,6 +82,7 @@ class TrackMergeremb : public edm::stream::EDProducer<>
   edm::EDGetTokenT<reco::MuonToMuonMap > inputs_fixmurefs_;
   edm::EDGetTokenT<reco::MuonCollection > inputs_fixmucol_;
 
+  edm::EDGetTokenT<reco::SuperClusterCollection> inputs_SC_;
   edm::EDGetTokenT<reco::ElectronSeedCollection > inputs_rElectronMergedSeeds_;
   edm::EDGetTokenT<edm::View<TrajectorySeed >> inputs_rElectronMergedSeedViews_;
 
