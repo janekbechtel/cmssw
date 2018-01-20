@@ -44,6 +44,7 @@
 
 
 typedef TrackMergeremb<reco::TrackCollection> TrackColMerger;
+typedef TrackMergeremb<reco::GsfTrackCollection> GsfTrackColMerger;
 typedef TrackMergeremb<reco::MuonCollection > MuonColMerger;
 typedef TrackMergeremb<reco::GsfElectronCollection > GsfElectronColMerger;
 typedef TrackMergeremb<reco::PhotonCollection > PhotonColMerger;
@@ -69,21 +70,19 @@ void  TrackMergeremb<T1>::merg_and_put(edm::Event& iEvent, std::string instance,
 {
 
     std::unique_ptr<TrackCollectionemb> outTracks = std::unique_ptr<TrackCollectionemb>(new TrackCollectionemb);
-   
+
     for (auto akt_collection : to_merge){
-        edm::Handle<TrackCollectionemb> track_col_in;  
+        edm::Handle<TrackCollectionemb> track_col_in;
         iEvent.getByToken(akt_collection, track_col_in);
-          
+
         size_t sedref_it = 0;
         for (typename TrackCollectionemb::const_iterator it = track_col_in->begin(); it != track_col_in->end(); ++it, ++sedref_it) {
-        outTracks->push_back( typename T1::value_type( *it ) );
-	    	    
+          outTracks->push_back( typename T1::value_type( *it ) );
         }
-	          
-    }// end merge 
-    
-    iEvent.put(std::move(outTracks),instance); 
-  
+    }// end merge
+
+    iEvent.put(std::move(outTracks),instance);
+
 }
 
 template <>
@@ -94,57 +93,62 @@ void  TrackMergeremb<reco::TrackCollection>::willproduce(std::string instance, s
     produces<reco::TrackExtraCollection>(instance).setBranchAlias( alias + "TrackExtras" );
     produces<TrackingRecHitCollection>(instance).setBranchAlias( alias + "RecHits" );
     produces<TrackToTrackMapnew>();
-    
+
 }
 
 template <>
 void  TrackMergeremb<reco::TrackCollection>::merg_and_put(edm::Event& iEvent, std::string instance,  std::vector<edm::EDGetTokenT<reco::TrackCollection> > &to_merge )
 {
-    
+
     std::unique_ptr<reco::TrackCollection> outTracks = std::unique_ptr<reco::TrackCollection>(new reco::TrackCollection);
     std::unique_ptr<reco::TrackExtraCollection> outTracks_ex = std::unique_ptr<reco::TrackExtraCollection>(new reco::TrackExtraCollection());
     std::unique_ptr<TrackingRecHitCollection> outTracks_rh = std::unique_ptr<TrackingRecHitCollection>(new TrackingRecHitCollection());
-    std::unique_ptr<TrackToTrackMapnew> outTracks_refs = std::unique_ptr<TrackToTrackMapnew>(new TrackToTrackMapnew()); 
-    
+    std::unique_ptr<TrackToTrackMapnew> outTracks_refs = std::unique_ptr<TrackToTrackMapnew>(new TrackToTrackMapnew());
+
     auto rTrackExtras = iEvent.getRefBeforePut<reco::TrackExtraCollection>();
    // auto rHits = iEvent.getRefBeforePut<TrackingRecHitCollection>();
-      
+
    std::vector<reco::TrackRefVector> trackRefColl;
    //std::vector<reco::TrackRef> trackRefColl;
-    
+
     for (auto akt_collection : to_merge){
-        edm::Handle<reco::TrackCollection> track_col_in;  
+        edm::Handle<reco::TrackCollection> track_col_in;
         iEvent.getByToken(akt_collection, track_col_in);
-          
+
         unsigned sedref_it = 0;
         for (reco::TrackCollection::const_iterator it = track_col_in->begin(); it != track_col_in->end(); ++it, ++sedref_it) {
-        outTracks->push_back( reco::Track( *it ) );
-        outTracks_ex->push_back( reco::TrackExtra( *it->extra() ) );
-        outTracks->back().setExtra( reco::TrackExtraRef( rTrackExtras, outTracks_ex->size() - 1) );	
-	reco::TrackRef trackRefold(track_col_in, sedref_it);
-	
-	reco::TrackRefVector trackRefColl_helpvec;
-	trackRefColl_helpvec.push_back(trackRefold);
-	trackRefColl.push_back(trackRefColl_helpvec);	
+          outTracks->push_back( reco::Track( *it ) );
+          outTracks_ex->push_back( reco::TrackExtra( *it->extra() ) );
+          outTracks->back().setExtra( reco::TrackExtraRef( rTrackExtras, outTracks_ex->size() - 1) );
+          reco::TrackRef trackRefold(track_col_in, sedref_it);
+
+          reco::TrackRefVector trackRefColl_helpvec;
+          trackRefColl_helpvec.push_back(trackRefold);
+          trackRefColl.push_back(trackRefColl_helpvec);
         }
-	          
-    }// end merge 
-    
-    
+
+    }// end merge
+
+
     edm::OrphanHandle<reco::TrackCollection> trackHandle = iEvent.put(std::move(outTracks),instance);
     iEvent.put(std::move(outTracks_ex),instance);
-    
-    
+
+
     TrackToTrackMapnew::Filler filler(*outTracks_refs);
     filler.insert(trackHandle, trackRefColl.begin(), trackRefColl.end() );
     filler.fill();
-    
+
     iEvent.put(std::move(outTracks_refs));
     iEvent.put(std::move(outTracks_rh),instance); // not implemented so far
-    
+
 }
 
-
+template <>
+void  TrackMergeremb<reco::GsfTrackCollection>::willconsume(const edm::ParameterSet& iConfig)
+{
+   inputs_rElectronMergedSeeds_ = consumes<reco::ElectronSeedCollection >(edm::InputTag("electronMergedSeeds") );
+   inputs_rElectronMergedSeedViews_ = consumes<edm::View<TrajectorySeed>>(edm::InputTag("electronMergedSeeds") );
+}
 
 template <>
 void  TrackMergeremb<reco::GsfTrackCollection>::willproduce(std::string instance, std::string alias)
@@ -153,44 +157,95 @@ void  TrackMergeremb<reco::GsfTrackCollection>::willproduce(std::string instance
     produces<reco::TrackExtraCollection>(instance).setBranchAlias( alias + "TrackExtras" );
     produces<reco::GsfTrackExtraCollection>(instance).setBranchAlias( alias + "GsfTrackExtras" );
     produces<TrackingRecHitCollection>(instance).setBranchAlias( alias + "RecHits" );
+    produces<GsfTrackToTrackMapnew>();
 }
 
 template <>
 void  TrackMergeremb<reco::GsfTrackCollection>::merg_and_put(edm::Event& iEvent, std::string instance,  std::vector<edm::EDGetTokenT<reco::GsfTrackCollection> > &to_merge )
 {
+
     std::unique_ptr<reco::GsfTrackCollection> outTracks = std::unique_ptr<reco::GsfTrackCollection>(new reco::GsfTrackCollection);
     std::unique_ptr<reco::TrackExtraCollection> outTracks_ex = std::unique_ptr<reco::TrackExtraCollection>(new reco::TrackExtraCollection());
     std::unique_ptr<reco::GsfTrackExtraCollection> outTracks_exgsf = std::unique_ptr<reco::GsfTrackExtraCollection>(new reco::GsfTrackExtraCollection());
     std::unique_ptr<TrackingRecHitCollection> outTracks_rh = std::unique_ptr<TrackingRecHitCollection>(new TrackingRecHitCollection());
-    
-    
+    std::unique_ptr<GsfTrackToTrackMapnew> outTracks_refs = std::unique_ptr<GsfTrackToTrackMapnew>(new GsfTrackToTrackMapnew());
+
     auto rTrackExtras = iEvent.getRefBeforePut<reco::TrackExtraCollection>();
     auto rTrackExtras_gsf = iEvent.getRefBeforePut<reco::GsfTrackExtraCollection>();
-    
+
     auto rHits = iEvent.getRefBeforePut<TrackingRecHitCollection>();
-      
+
+    std::vector<reco::GsfTrackRefVector> trackRefColl;
+
     for (auto akt_collection : to_merge){
-        edm::Handle<reco::GsfTrackCollection> track_col_in;  
+        edm::Handle<reco::GsfTrackCollection> track_col_in;
         iEvent.getByToken(akt_collection, track_col_in);
-          
+
+        //std::cout << "Size" << "=" << track_col_in->size() << std::endl;
+
         size_t sedref_it = 0;
         for (reco::GsfTrackCollection::const_iterator it = track_col_in->begin(); it != track_col_in->end(); ++it, ++sedref_it) {
-        outTracks->push_back( reco::GsfTrack( *it ) );
-        outTracks_ex->push_back( reco::TrackExtra( *it->extra() ) );
-        outTracks_exgsf->push_back( reco::GsfTrackExtra( *it->gsfExtra() ) );
-        
-        outTracks->back().setExtra( reco::TrackExtraRef( rTrackExtras, outTracks_ex->size() - 1) );
-        outTracks->back().setGsfExtra( reco::GsfTrackExtraRef( rTrackExtras_gsf, outTracks_exgsf->size() - 1) );
+          outTracks->push_back( reco::GsfTrack( *it ) );
+          outTracks_ex->push_back( reco::TrackExtra( *it->extra() ) );
+          outTracks_exgsf->push_back( reco::GsfTrackExtra( *it->gsfExtra() ) );
+
+          outTracks->back().setExtra( reco::TrackExtraRef( rTrackExtras, outTracks_ex->size() - 1) );
+          outTracks->back().setGsfExtra( reco::GsfTrackExtraRef( rTrackExtras_gsf, outTracks_exgsf->size() - 1) );
+
+          reco::GsfTrackRef trackRefold(track_col_in, sedref_it);
+          reco::GsfTrackRefVector trackRefColl_helpvec;
+          trackRefColl_helpvec.push_back(trackRefold);
+          trackRefColl.push_back(trackRefColl_helpvec);
         }
-	          
-    }// end merge 
-    
-    
-    iEvent.put(std::move(outTracks),instance);
-    iEvent.put(std::move(outTracks_ex),instance);
+
+    }// end merge
+
+    edm::OrphanHandle<reco::GsfTrackCollection> trackHandle = iEvent.put(std::move(outTracks),instance);
+    GsfTrackToTrackMapnew::Filler filler(*outTracks_refs);
+    filler.insert(trackHandle, trackRefColl.begin(), trackRefColl.end() );
+    filler.fill();
+
+    edm::Handle<reco::ElectronSeedCollection> elSeeds;
+    iEvent.getByToken(inputs_rElectronMergedSeeds_,elSeeds);
+    auto bElSeeds = elSeeds->cbegin();
+    auto eElSeeds = elSeeds->cend();
+
+    edm::Handle<edm::View<TrajectorySeed> > seedViewsHandle;
+    iEvent.getByToken(inputs_rElectronMergedSeedViews_,seedViewsHandle);
+
+    std::unique_ptr<reco::TrackExtraCollection> outTracks_ex_new = std::unique_ptr<reco::TrackExtraCollection>(new reco::TrackExtraCollection());
+
+    //fix track extras to new merged seeds
+    for ( typename reco::TrackExtraCollection::const_iterator tex = outTracks_ex->begin(); tex!= outTracks_ex->end(); ++tex ) {
+      reco::TrackExtra newTrackExtra(*tex);
+
+      if (tex->seedRef().isAvailable()) {
+        const reco::ElectronSeedRef & trSeedRef (tex->seedRef().castTo<reco::ElectronSeedRef>());
+        if( trSeedRef.isAvailable() && trSeedRef->isEcalDriven() ) {
+
+          //find new seed with corresponding supercluster
+          size_t sedref_it = 0;
+          for( auto tseed = bElSeeds; tseed != eElSeeds; ++tseed, ++sedref_it) {
+            const reco::ElectronSeedRef elSeedRef (elSeeds, sedref_it);
+
+          if (elSeedRef->isEcalDriven()) {
+              //match seeds by pair of detIds
+              if ( trSeedRef->detId(0) == elSeedRef->detId(0) && trSeedRef->detId(1) == elSeedRef->detId(1)) {
+                edm::RefToBase<TrajectorySeed> traSeedRef(seedViewsHandle, sedref_it);
+                newTrackExtra.setSeedRef(traSeedRef);
+              }
+            }
+          }
+        }
+      }
+
+      outTracks_ex_new->push_back(newTrackExtra);
+    }
+
+    iEvent.put(std::move(outTracks_refs));
+    iEvent.put(std::move(outTracks_ex_new),instance);
     iEvent.put(std::move(outTracks_exgsf),instance);
     iEvent.put(std::move(outTracks_rh),instance);
-
 }
 
 
@@ -203,17 +258,17 @@ void  TrackMergeremb<reco::MuonCollection >::willproduce(std::string instance, s
    produces<reco::MuonTimeExtraMap>("combined");
    produces<reco::MuonTimeExtraMap>("dt");
    produces<reco::MuonTimeExtraMap>("csc");
-  
+
    // todo make this configurable (or not )
    produces<reco::IsoDepositMap>("tracker");
    produces<reco::IsoDepositMap>("ecal");
    produces<reco::IsoDepositMap>("hcal");
    produces<reco::IsoDepositMap>("ho");
    produces<reco::IsoDepositMap>("jets");
-   
+
    produces<reco::MuonToMuonMap>();
-   
-    
+
+
 }
 
 template <>
@@ -222,9 +277,9 @@ void  TrackMergeremb<reco::MuonCollection >::willconsume(const edm::ParameterSet
 
    inputs_fixtrackrefs_ = consumes<TrackToTrackMapnew >( edm::InputTag("generalTracks") );
    inputs_fixtrackcol_ = consumes<reco::TrackCollection >( edm::InputTag("generalTracks") );
-   
-   
-   
+
+
+
 }
 
 
@@ -232,40 +287,40 @@ template <>
 void  TrackMergeremb<reco::MuonCollection  >::merg_and_put(edm::Event& iEvent, std::string instance,  std::vector<edm::EDGetTokenT<reco::MuonCollection> > &to_merge )
 {
     std::unique_ptr<reco::MuonCollection> outTracks = std::unique_ptr<reco::MuonCollection>(new reco::MuonCollection);
-    std::unique_ptr<reco::CaloMuonCollection> calomu = std::unique_ptr<reco::CaloMuonCollection>(new reco::CaloMuonCollection); //not implemented so far 
-    
+    std::unique_ptr<reco::CaloMuonCollection> calomu = std::unique_ptr<reco::CaloMuonCollection>(new reco::CaloMuonCollection); //not implemented so far
+
     edm::Handle<TrackToTrackMapnew> track_ref_map;
     iEvent.getByToken(inputs_fixtrackrefs_, track_ref_map);
-    
+
     edm::Handle<reco::TrackCollection> track_new_col;
-    iEvent.getByToken(inputs_fixtrackcol_, track_new_col);   
+    iEvent.getByToken(inputs_fixtrackcol_, track_new_col);
     std::map<reco::TrackRef , reco::TrackRef > simple_track_to_track_map; //I didn't find a more elegant way, so just build a good old fassion std::map
      for (unsigned abc =0;  abc < track_new_col->size();  ++abc) {
-      reco::TrackRef trackRef(track_new_col, abc);      
+      reco::TrackRef trackRef(track_new_col, abc);
       simple_track_to_track_map[((*track_ref_map)[trackRef])[0]] = trackRef;
     }
-    
+
     std::vector<reco::MuonRef> muonRefColl;
     reco::MuonRefProd outputMuonsRefProd = iEvent.getRefBeforePut<reco::MuonCollection>();
     unsigned new_idx=0;
     for (auto akt_collection : to_merge){
-        edm::Handle<reco::MuonCollection> track_col_in;  
+        edm::Handle<reco::MuonCollection> track_col_in;
         iEvent.getByToken(akt_collection, track_col_in);
-	unsigned old_idx=0;
+        unsigned old_idx=0;
         for (reco::MuonCollection::const_iterator it = track_col_in->begin(); it != track_col_in->end(); ++it, ++old_idx, ++new_idx) {
         outTracks->push_back( reco::Muon( *it ) );
-	 reco::MuonRef muRefold(track_col_in, old_idx);
-	 muonRefColl.push_back(muRefold);
-	 reco::MuonRef muRefnew(outputMuonsRefProd, new_idx);
-                  
+         reco::MuonRef muRefold(track_col_in, old_idx);
+         muonRefColl.push_back(muRefold);
+         reco::MuonRef muRefnew(outputMuonsRefProd, new_idx);
+
         if (it->track().isNonnull()){
             //std::cout<<"pfmerge tr: "<<it->trackRef().id()<< " "<< it->trackRef().key()<< " " << simple_track_to_track_map[it->trackRef()].id() <<  " " << simple_track_to_track_map[it->trackRef()].key() <<std::endl;
-	    outTracks->back().setTrack( simple_track_to_track_map[it->track()]  );
-	 }
+            outTracks->back().setTrack( simple_track_to_track_map[it->track()]  );
+         }
         }
-	          
-    }// end merge 
-    
+
+    }// end merge
+
      const int nMuons=outTracks->size();
 
      std::vector<reco::MuonTimeExtra> dtTimeColl(nMuons);
@@ -276,9 +331,9 @@ void  TrackMergeremb<reco::MuonCollection  >::merg_and_put(edm::Event& iEvent, s
      std::vector<reco::IsoDeposit> hcalDepColl(nMuons);
      std::vector<reco::IsoDeposit> hoDepColl(nMuons);
      std::vector<reco::IsoDeposit> jetDepColl(nMuons);
-          
+
     edm::OrphanHandle<reco::MuonCollection> muonHandle = iEvent.put(std::move(outTracks));
-    
+
     auto fillMap = [](auto refH, auto& vec, edm::Event& ev, const std::string& cAl = ""){
      typedef  edm::ValueMap<typename std::decay<decltype(vec)>::type::value_type> MapType;
      std::unique_ptr<MapType > oMap(new MapType());
@@ -290,7 +345,7 @@ void  TrackMergeremb<reco::MuonCollection  >::merg_and_put(edm::Event& iEvent, s
      }
      ev.put(std::move(oMap), cAl);
     };
-    
+
    fillMap(muonHandle, combinedTimeColl, iEvent, "combined");
    fillMap(muonHandle, dtTimeColl, iEvent, "dt");
    fillMap(muonHandle, cscTimeColl, iEvent, "csc");
@@ -299,9 +354,9 @@ void  TrackMergeremb<reco::MuonCollection  >::merg_and_put(edm::Event& iEvent, s
    fillMap(muonHandle, hcalDepColl, iEvent, "hcal");
    fillMap(muonHandle, hoDepColl, iEvent, "ho");
    fillMap(muonHandle, jetDepColl, iEvent, "jets");
-   fillMap(muonHandle, muonRefColl, iEvent);   
-   iEvent.put(std::move(calomu));   
-    
+   fillMap(muonHandle, muonRefColl, iEvent);
+   iEvent.put(std::move(calomu));
+
 }
 
 
@@ -311,8 +366,8 @@ void  TrackMergeremb<reco::PFCandidateCollection >::willproduce(std::string inst
 {
 
   produces<reco::PFCandidateCollection>(instance);
- // std::cout<<"Produce PF Collection: "<<instance<<std::endl;  
-    
+ // std::cout<<"Produce PF Collection: "<<instance<<std::endl;
+
 }
 
 
@@ -324,8 +379,8 @@ void  TrackMergeremb<reco::PFCandidateCollection>::willconsume(const edm::Parame
    inputs_fixtrackcol_ = consumes<reco::TrackCollection >( edm::InputTag("generalTracks") );
    inputs_fixmurefs_ = consumes<reco::MuonToMuonMap >( edm::InputTag("muons1stStep") );
    inputs_fixmucol_ = consumes<reco::MuonCollection >( edm::InputTag("muons1stStep") );
-   
-   
+
+
 }
 
 
@@ -334,58 +389,59 @@ template <>
 void  TrackMergeremb<reco::PFCandidateCollection >::merg_and_put(edm::Event& iEvent, std::string instance,  std::vector<edm::EDGetTokenT<reco::PFCandidateCollection> > &to_merge )
 {
     std::unique_ptr<reco::PFCandidateCollection> outTracks = std::unique_ptr<reco::PFCandidateCollection>(new reco::PFCandidateCollection);
-    
+
     edm::Handle<TrackToTrackMapnew> track_ref_map;
     iEvent.getByToken(inputs_fixtrackrefs_, track_ref_map);
-    
+
     edm::Handle<reco::TrackCollection> track_new_col;
-    iEvent.getByToken(inputs_fixtrackcol_, track_new_col);   
+    iEvent.getByToken(inputs_fixtrackcol_, track_new_col);
     std::map<reco::TrackRef , reco::TrackRef > simple_track_to_track_map; //I didn't find a more elegant way, so just build a good old fassion std::map
      for (unsigned abc =0;  abc < track_new_col->size();  ++abc) {
-      reco::TrackRef trackRef(track_new_col, abc);      
+      reco::TrackRef trackRef(track_new_col, abc);
       simple_track_to_track_map[((*track_ref_map)[trackRef])[0]] = trackRef;
     }
-    
-    
+
+
     edm::Handle<reco::MuonToMuonMap> muon_ref_map;
     iEvent.getByToken(inputs_fixmurefs_, muon_ref_map);
-    
+
     edm::Handle<reco::MuonCollection> muon_new_col;
-    iEvent.getByToken(inputs_fixmucol_, muon_new_col);   
+    iEvent.getByToken(inputs_fixmucol_, muon_new_col);
     std::map<reco::MuonRef , reco::MuonRef > simple_mu_to_mu_map; //I didn't find a more elegant way, so just build a good old fassion std::map
     for (unsigned abc =0;  abc < muon_new_col->size();  ++abc) {
-      reco::MuonRef muRef(muon_new_col, abc);      
+      reco::MuonRef muRef(muon_new_col, abc);
       simple_mu_to_mu_map[(*muon_ref_map)[muRef]] = muRef;
     }
-    
-    
-      
+
+
+
     for (auto akt_collection : to_merge){
-        edm::Handle<reco::PFCandidateCollection> track_col_in;  
-        iEvent.getByToken(akt_collection, track_col_in);     
+        edm::Handle<reco::PFCandidateCollection> track_col_in;
+        iEvent.getByToken(akt_collection, track_col_in);
         for (reco::PFCandidateCollection::const_iterator it = track_col_in->begin(); it != track_col_in->end(); ++it) {
         outTracks->push_back( reco::PFCandidate( *it ) );
-	//if (fabs(it->pdgId()) == 13){
-	if (it->trackRef().isNonnull() && outTracks->back().charge()){
-            //std::cout<<"pfmerge tr: "<<it->trackRef().id()<< " "<< it->trackRef().key()<< " " << simple_track_to_track_map[it->trackRef()].id() <<  " " << simple_track_to_track_map[it->trackRef()].key() <<std::endl;   
-	    outTracks->back().setTrackRef( simple_track_to_track_map[it->trackRef()]  );
-	 }	 
+        //if (fabs(it->pdgId()) == 13){
+        if (it->trackRef().isNonnull() && outTracks->back().charge()){
+            //std::cout<<"pfmerge tr: "<<it->trackRef().id()<< " "<< it->trackRef().key()<< " " << simple_track_to_track_map[it->trackRef()].id() <<  " " << simple_track_to_track_map[it->trackRef()].key() <<std::endl;
+            outTracks->back().setTrackRef( simple_track_to_track_map[it->trackRef()]  );
+         }
         if (it->muonRef().isNonnull()){
-        	//std::cout<<"pfmerge mu: "<<it->muonRef().id()<< " "<< it->muonRef().key()<< " " << simple_mu_to_mu_map[it->muonRef()].id() <<  " " << simple_mu_to_mu_map[it->muonRef()].key() <<std::endl;
-		outTracks->back().setMuonRef( simple_mu_to_mu_map[it->muonRef()]  );		
-	        }
-	 
-        }	          
-    }// end merge 
+                //std::cout<<"pfmerge mu: "<<it->muonRef().id()<< " "<< it->muonRef().key()<< " " << simple_mu_to_mu_map[it->muonRef()].id() <<  " " << simple_mu_to_mu_map[it->muonRef()].key() <<std::endl;
+                outTracks->back().setMuonRef( simple_mu_to_mu_map[it->muonRef()]  );
+                }
+
+        }
+    }// end merge
 
     iEvent.put(std::move(outTracks),instance);
-     
+
 }
 
 
 #include "FWCore/Framework/interface/MakerMacros.h"
 
 DEFINE_FWK_MODULE(TrackColMerger);
+DEFINE_FWK_MODULE(GsfTrackColMerger);
 DEFINE_FWK_MODULE(MuonColMerger);
 DEFINE_FWK_MODULE(GsfElectronColMerger);
 DEFINE_FWK_MODULE(PhotonColMerger);
