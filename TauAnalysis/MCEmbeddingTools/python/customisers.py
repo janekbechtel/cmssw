@@ -381,6 +381,25 @@ def customiseMerging(process, changeProcessname=True,reselect=False):
 	process.muons.FillShoweringInfo = cms.bool(False)
 	process.muons.FillCosmicsIdMap = cms.bool(False)
 
+	#produce local Calo
+	process.load('RecoLocalCalo.Configuration.RecoLocalCalo_cff')
+	process.merge_step += process.calolocalreco
+	process.merge_step += process.caloglobalreco
+	process.merge_step += process.reducedHcalRecHitsSequence
+
+	#produce hcal towers
+	process.load('RecoLocalCalo.CaloTowersCreator.calotowermaker_cfi')
+	process.merge_step += process.calotowermaker
+	process.merge_step += process.towerMaker
+
+	#produce clusters
+	process.load('RecoEcal.Configuration.RecoEcal_cff')
+	process.merge_step += process.ecalClusters
+
+	#produce PFCluster Collections
+	process.load('RecoParticleFlow.PFClusterProducer.particleFlowCluster_cff')
+	process.merge_step += process.particleFlowCluster
+
 
 	process.merge_step += process.highlevelreco
 
