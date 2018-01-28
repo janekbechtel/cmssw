@@ -51,6 +51,9 @@ to_bemanipulate.append(module_manipulate(module_name = 'muons1stStep', manipulat
 to_bemanipulate.append(module_manipulate(module_name = 'conversions', manipulator_name = "Conversion", steps = ["SIM", "MERGE"]))
 to_bemanipulate.append(module_manipulate(module_name = 'particleFlowTmp', manipulator_name = "PF", steps = ["SIM", "MERGE"], instance=["","CleanedHF","CleanedCosmicsMuons","CleanedTrackerAndGlobalMuons","CleanedFakeMuons","CleanedPunchThroughMuons","CleanedPunchThroughNeutralHadrons","AddedMuonsAndHadrons"]))
 
+to_bemanipulate.append(module_manipulate(module_name = 'ecalDigis', manipulator_name = "EcalSrFlag", steps = ["SIM", "MERGE"]))
+to_bemanipulate.append(module_manipulate(module_name = 'electronMergedSeeds', manipulator_name = "ElectronSeed", steps = ["SIM", "MERGE"]))
+to_bemanipulate.append(module_manipulate(module_name = 'ecalDrivenElectronSeeds', manipulator_name = "EcalDrivenElectronSeed", steps = ["SIM", "MERGE"]))
 
 to_bemanipulate.append(module_manipulate(module_name = 'ecalRecHit', manipulator_name = "EcalRecHit", instance= ["EcalRecHitsEB","EcalRecHitsEE"]))
 to_bemanipulate.append(module_manipulate(module_name = 'ecalPreshowerRecHit', manipulator_name = "EcalRecHit", instance= ["EcalRecHitsES"]))
@@ -93,7 +96,8 @@ def keepSelected(dataTier):
 			 "keep *_selectedMuonsForEmbedding_*_"+dataTier,
 			 "keep recoVertexs_offlineSlimmedPrimaryVertices_*_"+dataTier,
 			 "keep *_firstStepPrimaryVertices_*_"+dataTier,
-			 "keep *_offlineBeamSpot_*_"+dataTier
+			 "keep *_offlineBeamSpot_*_"+dataTier,
+			 "keep *_ecalDrivenElectronSeeds_*_"+dataTier
 			 )
 	 for akt_manimod in to_bemanipulate:
 		if "CLEAN" in akt_manimod.steps:
@@ -354,6 +358,30 @@ def customiseMerging(process, changeProcessname=True,reselect=False):
 	process.load('Configuration.StandardSequences.Reconstruction_Data_cff')
 	process.merge_step = cms.Path()
 
+	#produce local Calo
+	process.load('RecoLocalCalo.Configuration.RecoLocalCalo_cff')
+	process.merge_step += process.calolocalreco
+	process.merge_step += process.caloglobalreco
+	process.merge_step += process.reducedHcalRecHitsSequence
+
+	#produce hcal towers
+	process.load('RecoLocalCalo.CaloTowersCreator.calotowermaker_cfi')
+	process.merge_step += process.calotowermaker
+	process.merge_step += process.towerMaker
+
+	#produce clusters
+	process.load('RecoEcal.Configuration.RecoEcal_cff')
+	process.merge_step += process.ecalClusters
+
+	#produce PFCluster Collections
+	process.load('RecoParticleFlow.PFClusterProducer.particleFlowCluster_cff')
+	process.merge_step += process.particleFlowCluster
+	process.load('RecoEcal.EgammaClusterProducers.particleFlowSuperClusteringSequence_cff')
+	process.merge_step += process.particleFlowSuperClusteringSequence
+
+	#muonEcalDetIds
+	process.load('RecoMuon.MuonIdentification.muons1stStep_cfi')
+	process.merge_step += process.muonEcalDetIds
 
 	for akt_manimod in to_bemanipulate:
 		if "MERGE" in akt_manimod.steps:
@@ -381,25 +409,9 @@ def customiseMerging(process, changeProcessname=True,reselect=False):
 	process.muons.FillShoweringInfo = cms.bool(False)
 	process.muons.FillCosmicsIdMap = cms.bool(False)
 
-	#produce local Calo
-	process.load('RecoLocalCalo.Configuration.RecoLocalCalo_cff')
-	process.merge_step += process.calolocalreco
-	process.merge_step += process.caloglobalreco
-	process.merge_step += process.reducedHcalRecHitsSequence
-
-	#produce hcal towers
-	process.load('RecoLocalCalo.CaloTowersCreator.calotowermaker_cfi')
-	process.merge_step += process.calotowermaker
-	process.merge_step += process.towerMaker
-
-	#produce clusters
-	process.load('RecoEcal.Configuration.RecoEcal_cff')
-	process.merge_step += process.ecalClusters
-
-	#produce PFCluster Collections
-	process.load('RecoParticleFlow.PFClusterProducer.particleFlowCluster_cff')
-	process.merge_step += process.particleFlowCluster
-
+	#seed configuration needed for seedmerger
+	process.load('RecoEgamma.EgammaElectronProducers.ecalDrivenElectronSeedsParameters_cff')
+	process.ecalDrivenElectronSeeds.SeedConfiguration = cms.PSet(process.ecalDrivenElectronSeedsParameters)
 
 	process.merge_step += process.highlevelreco
 
