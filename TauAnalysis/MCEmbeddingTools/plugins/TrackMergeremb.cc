@@ -148,8 +148,12 @@ void  TrackMergeremb<reco::TrackCollection>::merg_and_put(edm::Event& iEvent, st
 template <>
 void  TrackMergeremb<reco::GsfTrackCollection>::willconsume(const edm::ParameterSet& iConfig)
 {
-   inputs_rElectronMergedSeeds_ = consumes<reco::ElectronSeedCollection >(edm::InputTag("electronMergedSeeds") );
-   inputs_rElectronMergedSeedViews_ = consumes<edm::View<TrajectorySeed>>(edm::InputTag("electronMergedSeeds") );
+    //track refs for trackerdriven seeds
+    inputs_fixtrackrefs_ = consumes<TrackToTrackMapnew >( edm::InputTag("generalTracks") );
+    inputs_fixtrackcol_ = consumes<reco::TrackCollection >( edm::InputTag("generalTracks") );
+
+    inputs_rElectronMergedSeeds_ = consumes<reco::ElectronSeedCollection >(edm::InputTag("electronMergedSeeds") );
+    inputs_rElectronMergedSeedViews_ = consumes<edm::View<TrajectorySeed>>(edm::InputTag("electronMergedSeeds") );
 }
 
 template <>
@@ -207,6 +211,19 @@ void  TrackMergeremb<reco::GsfTrackCollection>::merg_and_put(edm::Event& iEvent,
     filler.insert(trackHandle, trackRefColl.begin(), trackRefColl.end() );
     filler.fill();
 
+
+    //track to track map for trackerdriven seed fix
+    edm::Handle<TrackToTrackMapnew> track_ref_map;
+    iEvent.getByToken(inputs_fixtrackrefs_, track_ref_map);
+
+    edm::Handle<reco::TrackCollection> track_new_col;
+    iEvent.getByToken(inputs_fixtrackcol_, track_new_col);
+    std::map<reco::TrackRef , reco::TrackRef > simple_track_to_track_map; //I didn't find a more elegant way, so just build a good old fassion std::map
+     for (unsigned abc =0;  abc < track_new_col->size();  ++abc) {
+      reco::TrackRef trackRef(track_new_col, abc);
+      simple_track_to_track_map[((*track_ref_map)[trackRef])[0]] = trackRef;
+    }
+
     edm::Handle<reco::ElectronSeedCollection> elSeeds;
     iEvent.getByToken(inputs_rElectronMergedSeeds_,elSeeds);
     auto bElSeeds = elSeeds->cbegin();
@@ -230,9 +247,16 @@ void  TrackMergeremb<reco::GsfTrackCollection>::merg_and_put(edm::Event& iEvent,
           for( auto tseed = bElSeeds; tseed != eElSeeds; ++tseed, ++sedref_it) {
             const reco::ElectronSeedRef elSeedRef (elSeeds, sedref_it);
 
-          if (elSeedRef->isEcalDriven()) {
+            if (elSeedRef->isEcalDriven()) {
               //match seeds by pair of detIds
               if ( trSeedRef->detId(0) == elSeedRef->detId(0) && trSeedRef->detId(1) == elSeedRef->detId(1)) {
+                edm::RefToBase<TrajectorySeed> traSeedRef(seedViewsHandle, sedref_it);
+                newTrackExtra.setSeedRef(traSeedRef);
+              }
+            }
+            if (elSeedRef->isTrackerDriven()) {
+              //if tracker driven, check for same ctf track
+              if (simple_track_to_track_map[trSeedRef->ctfTrack()] == elSeedRef->ctfTrack()) {
                 edm::RefToBase<TrajectorySeed> traSeedRef(seedViewsHandle, sedref_it);
                 newTrackExtra.setSeedRef(traSeedRef);
               }
@@ -276,12 +300,8 @@ void  TrackMergeremb<reco::MuonCollection >::willproduce(std::string instance, s
 template <>
 void  TrackMergeremb<reco::MuonCollection >::willconsume(const edm::ParameterSet& iConfig)
 {
-
    inputs_fixtrackrefs_ = consumes<TrackToTrackMapnew >( edm::InputTag("generalTracks") );
    inputs_fixtrackcol_ = consumes<reco::TrackCollection >( edm::InputTag("generalTracks") );
-
-
-
 }
 
 
@@ -452,7 +472,8 @@ void  TrackMergeremb<reco::PFCandidateCollection >::merg_and_put(edm::Event& iEv
           const reco::SuperClusterRef & pfScRef(it->superClusterRef());
 
           float dx, dy, dz, dr;
-          float drMin = std::numeric_limits<float>::infinity();
+          //float drMin = std::numeric_limits<float>::infinity();
+          float drMin = 10.0;//also used as treshold for matching
           reco::SuperClusterRef ccrefMin;
           for( auto sc = bSc; sc != eSc; ++sc ) {
             const reco::SuperClusterRef & scRef(reco::SuperClusterRef(sCs,std::distance(bSc,sc)));

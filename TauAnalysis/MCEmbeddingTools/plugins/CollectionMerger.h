@@ -26,6 +26,10 @@
 #include "DataFormats/ParticleFlowReco/interface/PFClusterFwd.h"
 #include "DataFormats/ParticleFlowReco/interface/PFCluster.h"
 
+#include "DataFormats/TrackReco/interface/Track.h"
+#include "DataFormats/TrackReco/interface/TrackFwd.h"
+#include "DataFormats/TrackReco/interface/TrackToTrackMap.h"
+
 #include "TrackingTools/TrackAssociator/interface/TrackAssociatorParameters.h"
 #include "TrackingTools/TrackAssociator/interface/TrackDetectorAssociator.h"
 #include "TrackingTools/Records/interface/TrackingComponentsRecord.h"
@@ -59,6 +63,10 @@ class CollectionMerger : public  edm::stream::EDProducer<>
   std::map<std::string,  std::vector<edm::EDGetTokenT<MergeCollection > > > inputs_;
 
   edm::EDGetTokenT<reco::SuperClusterCollection> inputs_scEB_,inputs_scEE_, inputs_SC_;
+  
+  typedef edm::ValueMap<reco::TrackRefVector> TrackToTrackMapnew;
+  edm::EDGetTokenT<TrackToTrackMapnew > inputs_fixtrackrefs_;
+  edm::EDGetTokenT<reco::TrackCollection > inputs_fixtrackcol_;
 
   void fill_output_obj(edm::Event&, std::unique_ptr<MergeCollection > & output, std::vector<edm::Handle<MergeCollection> > &inputCollections);
   void fill_output_obj_tracker(std::unique_ptr<MergeCollection > & output, std::vector<edm::Handle<MergeCollection> > &inputCollections, bool print_pixel=false);

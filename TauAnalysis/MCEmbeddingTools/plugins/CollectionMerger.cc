@@ -26,6 +26,10 @@
 #include "DataFormats/RPCRecHit/interface/RPCRecHit.h"
 #include "DataFormats/HcalRecHit/interface/ZDCRecHit.h"
 
+#include "DataFormats/TrackReco/interface/Track.h"
+#include "DataFormats/TrackReco/interface/TrackFwd.h"
+#include "DataFormats/TrackReco/interface/TrackToTrackMap.h"
+
 #include "DataFormats/EgammaReco/interface/ElectronSeed.h"
 #include "DataFormats/ParticleFlowReco/interface/PreId.h"
 
@@ -138,12 +142,17 @@ void  CollectionMerger<T1,T2>::fill_output_obj_muonchamber(std::unique_ptr<Merge
 
 
 // -------- Here Electron Seed Merger -----------
+//TODO: move seed merger to TrackMerger class
 template <>
 void  CollectionMerger<std::vector<reco::ElectronSeed>,  reco::ElectronSeed>::willconsume(const edm::ParameterSet& iConfig)
 {
-   inputs_scEB_ = consumes<reco::SuperClusterCollection >(edm::InputTag("particleFlowSuperClusterECAL:particleFlowSuperClusterECALBarrel") );
-   inputs_scEE_ = consumes<reco::SuperClusterCollection >(edm::InputTag("particleFlowSuperClusterECAL:particleFlowSuperClusterECALEndcapWithPreshower") );
-
+    //track refs for trackerdriven seeds
+    inputs_fixtrackrefs_ = consumes<TrackToTrackMapnew >( edm::InputTag("generalTracks") );
+    inputs_fixtrackcol_ = consumes<reco::TrackCollection >( edm::InputTag("generalTracks") );
+    
+    //sc refs for ecaldriven seeds
+    inputs_scEB_ = consumes<reco::SuperClusterCollection >(edm::InputTag("particleFlowSuperClusterECAL:particleFlowSuperClusterECALBarrel") );
+    inputs_scEE_ = consumes<reco::SuperClusterCollection >(edm::InputTag("particleFlowSuperClusterECAL:particleFlowSuperClusterECALEndcapWithPreshower") );
 }
 
 template <>
@@ -155,6 +164,18 @@ void  CollectionMerger<std::vector<reco::ElectronSeed>,  reco::ElectronSeed>::wi
 template <typename T1, typename T2>
 void  CollectionMerger<T1,T2>::fill_output_obj_seed(edm::Event& iEvent, std::unique_ptr<MergeCollection > & output, std::vector<edm::Handle<MergeCollection> > &inputCollections)
 {
+  //track to track map for trackerdriven seed fix
+  edm::Handle<TrackToTrackMapnew> track_ref_map;
+  iEvent.getByToken(inputs_fixtrackrefs_, track_ref_map);
+
+  edm::Handle<reco::TrackCollection> track_new_col;
+  iEvent.getByToken(inputs_fixtrackcol_, track_new_col);
+  std::map<reco::TrackRef , reco::TrackRef > simple_track_to_track_map; //I didn't find a more elegant way, so just build a good old fassion std::map
+   for (unsigned abc =0;  abc < track_new_col->size();  ++abc) {
+    reco::TrackRef trackRef(track_new_col, abc);
+    simple_track_to_track_map[((*track_ref_map)[trackRef])[0]] = trackRef;
+  }
+
   //ECAL barrel supercluster collection
   edm::Handle<reco::SuperClusterCollection> scEB;
   iEvent.getByToken(inputs_scEB_,scEB);
@@ -204,9 +225,15 @@ void  CollectionMerger<T1,T2>::fill_output_obj_seed(edm::Event& iEvent, std::uni
             }
           }
           //set new calocluster if new ref was found
-          if (drMin < 1000.0) {
+          if (drMin < 10.0) {
             newSeed.setCaloCluster(ccRefMin);
           }
+        }
+      }
+      if (seed->isTrackerDriven()) {
+        const reco::ElectronSeed::CtfTrackRef  & ctfTrackRef(seed->ctfTrack());
+        if ( ctfTrackRef.isNonnull() ){
+          newSeed.setCtfTrack(simple_track_to_track_map[ctfTrackRef]);
         }
       }
       output->push_back(newSeed);
