@@ -134,6 +134,20 @@ namespace DataFormats_EgammaCandidates {
     reco::GsfElectron::ClassificationVariables gecv ;
     reco::GsfElectron::PixelMatchVariables gepmv ;
     
+    
+    edm::ValueMap<reco::GsfTrackRefVector> vm_trv;
+    edm::Wrapper<edm::ValueMap<reco::GsfTrackRefVector> > w_vm_trv;
+    
+    std::vector<std::pair<edm::Ref<std::vector<reco::GsfTrack>,reco::GsfTrack,edm::refhelper::FindUsingAdvance<std::vector<reco::GsfTrack>,reco::GsfTrack> >,float> > amf5;
+    std::pair<edm::Ref<std::vector<reco::GsfTrack>,reco::GsfTrack,edm::refhelper::FindUsingAdvance<std::vector<reco::GsfTrack>,reco::GsfTrack> >,float> amf6;
+
+    std::vector<std::pair<edm::Ref<std::vector<reco::GsfTrack>,reco::GsfTrack,edm::refhelper::FindUsingAdvance<std::vector<reco::GsfTrack>,reco::GsfTrack> >,int> > am5;
+    std::pair<edm::Ref<std::vector<reco::GsfTrack>,reco::GsfTrack,edm::refhelper::FindUsingAdvance<std::vector<reco::GsfTrack>,reco::GsfTrack> >,int> am6;
+
+    edm::ValueMap<edm::RefVector<std::vector<reco::GsfTrack>,reco::GsfTrack,edm::refhelper::FindUsingAdvance<std::vector<reco::GsfTrack>,reco::GsfTrack> > > stizzl1;
+    edm::Wrapper<edm::ValueMap<edm::RefVector<std::vector<reco::GsfTrack>,reco::GsfTrack,edm::refhelper::FindUsingAdvance<std::vector<reco::GsfTrack>,reco::GsfTrack> > > > stizzl2;
+
+    
     edm::RefToBase<reco::GsfElectron> rtbg;
     edm::reftobase::IndirectHolder<reco::GsfElectron> ihg;
     edm::RefToBaseProd<reco::GsfElectron> rtbpg;
