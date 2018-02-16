@@ -240,21 +240,22 @@ void  TrackMergeremb<reco::GsfTrackCollection>::merg_and_put(edm::Event& iEvent,
 
       if (tex->seedRef().isAvailable()) {
         const reco::ElectronSeedRef & trSeedRef (tex->seedRef().castTo<reco::ElectronSeedRef>());
-        if( trSeedRef.isAvailable() && trSeedRef->isEcalDriven() ) {
+        if( trSeedRef.isAvailable() ) {
 
-          //find new seed with corresponding supercluster
+          //find new seed with corresponding supercluster or ctfTrack
+          //note that seed can be both Ecal- and Tracker-driven
           size_t sedref_it = 0;
           for( auto tseed = bElSeeds; tseed != eElSeeds; ++tseed, ++sedref_it) {
             const reco::ElectronSeedRef elSeedRef (elSeeds, sedref_it);
 
-            if (elSeedRef->isEcalDriven()) {
+            if (trSeedRef->isEcalDriven() && elSeedRef->isEcalDriven()) {
               //match seeds by pair of detIds
               if ( trSeedRef->detId(0) == elSeedRef->detId(0) && trSeedRef->detId(1) == elSeedRef->detId(1)) {
                 edm::RefToBase<TrajectorySeed> traSeedRef(seedViewsHandle, sedref_it);
                 newTrackExtra.setSeedRef(traSeedRef);
               }
             }
-            if (elSeedRef->isTrackerDriven()) {
+            if (trSeedRef->isTrackerDriven() && elSeedRef->isTrackerDriven()) {
               //if tracker driven, check for same ctf track
               if (simple_track_to_track_map[trSeedRef->ctfTrack()] == elSeedRef->ctfTrack()) {
                 edm::RefToBase<TrajectorySeed> traSeedRef(seedViewsHandle, sedref_it);
@@ -421,7 +422,7 @@ void  TrackMergeremb<reco::PFCandidateCollection >::merg_and_put(edm::Event& iEv
     edm::Handle<reco::TrackCollection> track_new_col;
     iEvent.getByToken(inputs_fixtrackcol_, track_new_col);
     std::map<reco::TrackRef , reco::TrackRef > simple_track_to_track_map; //I didn't find a more elegant way, so just build a good old fassion std::map
-     for (unsigned abc =0;  abc < track_new_col->size();  ++abc) {
+    for (unsigned abc =0;  abc < track_new_col->size();  ++abc) {
       reco::TrackRef trackRef(track_new_col, abc);
       simple_track_to_track_map[((*track_ref_map)[trackRef])[0]] = trackRef;
     }
