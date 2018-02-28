@@ -269,7 +269,12 @@ namespace edm
     //adjust event weights if necessary (in case input event was attempted multiple times)
     if (nAttempts_>1) {
       double multihadweight = double(naccept)/double(nAttempts_);
-      
+      if(multihadweight>1.0) {
+		  std::cout<<"Unphysical hadronizer weight of "<<multihadweight<<" found!"<<std::endl;
+		  std::cout<<"Calculated from naccept= "<<double(naccept)<<" and nAttempts_= "<<double(nAttempts_)<<std::endl;
+		  throw edm::Exception(errors::EventCorruption)
+          << "Unphysical generatorWeight greater than 1 detected!";
+		}
       //adjust weight for GenEventInfoProduct
       finalGenEventInfo->weights()[0] *= multihadweight;
       
