@@ -242,6 +242,9 @@ def customiseGenerator(process, changeProcessname=True,reselect=False):
 	process.load('TauAnalysis.MCEmbeddingTools.EmbeddingVertexCorrector_cfi')
 	process.VtxSmeared = process.VtxCorrectedToInput.clone()
 	print "Correcting Vertex in genEvent to one from input. Replaced 'VtxSmeared' with the Corrector."
+	process.load('TauAnalysis.MCEmbeddingTools.EmbeddingBeamSpotOnline_cfi')
+	process.hltOnlineBeamSpot = process.onlineEmbeddingBeamSpotProducer.clone()
+	print "Setting online beam spot in HLTSchedule to the one from input data. Replaced 'hltOnlineBeamSpot' with the offline beam spot."
 
 	# Remove BeamSpot Production, use the one from selected data instead.
 	process.reconstruction.remove(process.offlineBeamSpot)
