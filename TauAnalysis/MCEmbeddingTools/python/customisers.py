@@ -91,7 +91,7 @@ def modify_outputModules(process, keep_drop_list = [], module_veto_list = [] ):
 
 def keepSelected(dataTier):
 	 ret_vstring = cms.untracked.vstring(
-	               #  "drop *_*_*_"+dataTier,
+			 #"drop *_*_*_"+dataTier,
 			 "keep *_patMuonsAfterID_*_"+dataTier,
 			 "keep *_slimmedMuons_*_"+dataTier,
 			 "keep *_selectedMuonsForEmbedding_*_"+dataTier,
@@ -109,6 +109,10 @@ def customiseSelecting(process,reselect=False):
 	if reselect:
 		process._Process__name = "RESELECT"
 		dataTier="RESELECT"
+		process.source.inputCommands = cms.untracked.vstring("drop *",
+			"keep *_*_*_LHC",
+			"keep *_*_*_HLT",
+		)
 	else:
 		process._Process__name = "SELECT"
 		dataTier="SELECT"
