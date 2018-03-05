@@ -144,18 +144,9 @@ def keepCleaned(dataTier):
 		if "MERGE" in akt_manimod.steps:
 			ret_vstring.append("keep *_"+akt_manimod.module_name+"_*_LHEembeddingCLEAN")
 			ret_vstring.append("keep *_"+akt_manimod.module_name+"_*_CLEAN")
-	ret_vstring.append("keep *_standAloneMuons_*_LHEembeddingCLEAN")
-	ret_vstring.append("keep *_glbTrackQual_*_LHEembeddingCLEAN")
-
-	ret_vstring.append("keep *_firstStepPrimaryVertices_*_SELECT")
-	ret_vstring.append("keep *_l1extraParticles_*_SELECT")
-	ret_vstring.append("keep *_selectedMuonsForEmbedding_*_SELECT")
-	ret_vstring.append("keep *_patMuonsAfterID_*_SELECT")
-	ret_vstring.append("keep *_slimmedMuons_*_SELECT")
-	ret_vstring.append("keep *_offlineSlimmedPrimaryVertices_*_SELECT")
-	ret_vstring.append("keep *_offlineBeamSpot_*_SELECT")
-	
-	return ret_vstring
+	 ret_vstring.append("keep *_standAloneMuons_*_LHEembeddingCLEAN")
+	 ret_vstring.append("keep *_glbTrackQual_*_LHEembeddingCLEAN")
+	 return ret_vstring
 
 
 
